@@ -646,17 +646,30 @@ final class WrapperRunner implements RunnerInterface
         $groups = [];
 
         foreach ($suiteLoader->tests as $tests) {
+            /** @var list<non-empty-string|list<non-empty-string>> $tests */
+            $testFiles = $tests;
+
             $group = [];
 
-            foreach (array_filter(
-                $tests,
-                fn (string $filename): bool => ! str_ends_with($filename, "eval()'d code")
-            ) as $filename) {
-                $resolved = realpath($filename) ?: $filename;
+            foreach (
+                array_filter(
+                    $testFiles,
+                    fn (string|array $filename): bool => ! str_ends_with(
+                        is_array($filename) ? (string) end($filename) : $filename,
+                        "eval()'d code"
+                    )
+                ) as $filename
+            ) {
+                /** @var non-empty-string|list<non-empty-string> $filename */
+                $filenames = is_array($filename) ? $filename : [$filename];
 
-                if (! isset($files[$resolved])) {
-                    $files[$resolved] = true;
-                    $group[] = $resolved;
+                foreach ($filenames as $f) {
+                    $resolved = realpath($f) ?: $f;
+
+                    if (! isset($files[$resolved])) {
+                        $files[$resolved] = true;
+                        $group[] = $resolved;
+                    }
                 }
             }
 
